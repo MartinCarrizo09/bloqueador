@@ -72,6 +72,8 @@
   .note { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin-top: 12px; }
   .hide { display: none !important; }
   a { color: var(--accent); }
+  ul { margin: 0 0 10px; padding-left: 20px; }
+  .copy-list { padding: 4px 10px; margin-top: 6px; font-size: .85rem; }
   code { background: #0d1014; padding: 1px 6px; border-radius: 6px; }
 </style>
 </head>
@@ -113,6 +115,9 @@
     <li><input type="checkbox" id="a1"><label for="a1"><b class="path">Ajustes › Bienestar digital › Modo concentración</b> (en Samsung: <b class="path">Ajustes › Bienestar digital y control parental › Modo concentración</b>).</label></li>
     <li><input type="checkbox" id="a2"><label for="a2">Marcá como "apps que distraen" <b>todas</b> menos Teléfono, Mensajes, WhatsApp, Drive, Meet, Zoom y Gemini. Incluí Chrome, Samsung Internet, YouTube, Instagram, TikTok y los juegos.</label></li>
     <li><input type="checkbox" id="a3"><label for="a3">Tocá <b>Activar ahora</b>. Si querés que se sostenga solo, en <b>Establecer un programa</b> poné todos los días de 00:00 a 23:59 y desactivalo el sábado.</label></li>
+    <li><input type="checkbox" id="a7"><label for="a7"><b>Bloquear páginas (URLs) en todo el celu</b>: entrá a <a href="https://my.nextdns.io/signup" target="_blank" rel="noopener">my.nextdns.io</a> y creá una cuenta gratis. En <b class="path">Parental Control › Websites, Apps &amp; Games</b> agregá YouTube, TikTok, Instagram, Facebook, X, Reddit, Netflix, Twitch, Discord, Pinterest, Snapchat, Roblox y los juegos que uses, y activá <b>Block Bypass Methods</b>.</label></li>
+    <li><input type="checkbox" id="a8"><label for="a8">En <b class="path">Denylist</b> agregá el resto de las páginas. <button type="button" class="btn copy-list">Copiar lista de páginas</button></label></li>
+    <li><input type="checkbox" id="a9"><label for="a9">En NextDNS, pestaña <b>Setup</b>, copiá tu dirección (algo como <code>abc123.dns.nextdns.io</code>). En el celu: <b class="path">Ajustes › Conexiones › Más ajustes de conexión › DNS privado</b> (Samsung) o <b class="path">Ajustes › Red e Internet › DNS privado</b> → <b>Nombre de host</b> → pegala. Desde ahí esas páginas no abren en ningún navegador ni app.</label></li>
     <li><input type="checkbox" id="a4"><label for="a4"><b>Ocultar íconos</b> — Samsung: <b class="path">Ajustes › Pantalla de inicio › Ocultar apps en pantallas Inicio y Aplicaciones</b> y ocultá todo lo que no sea permitido. Otros Android: mové todas las apps a una carpeta "Después" en la última pantalla.</label></li>
     <li><input type="checkbox" id="a5"><label for="a5">En Chrome abrí esta página, menú <b>⋮ › Agregar a pantalla principal</b> y dejá el ícono "Enfoque" en la primera pantalla: es tu lanzador.</label></li>
     <li><input type="checkbox" id="a6"><label for="a6">Extra: en <b>Bienestar digital › Panel</b> poné un temporizador de 1 minuto a Chrome, así no se usa como puerta trasera.</label></li>
@@ -123,6 +128,7 @@
     <li><input type="checkbox" id="i2"><label for="i2"><b class="path">Tiempo de inactividad</b> → Programado, todos los días de 00:00 a 23:59, con <b>Bloquear en tiempo de inactividad</b> activado.</label></li>
     <li><input type="checkbox" id="i3"><label for="i3"><b class="path">Siempre permitido</b>: dejá solo Teléfono, Mensajes, WhatsApp, Drive, Meet, Zoom y Gemini.</label></li>
     <li><input type="checkbox" id="i4"><label for="i4"><b class="path">Restricciones › Restricciones de contenido › Contenido web › Solo sitios web permitidos</b> y agregá <code>gemini.google.com</code>, <code>drive.google.com</code>, <code>meet.google.com</code>, <code>zoom.us</code> y esta página.</label></li>
+    <li><input type="checkbox" id="i7"><label for="i7">Extra (bloquea las páginas también dentro de las apps): creá una cuenta gratis en <a href="https://my.nextdns.io/signup" target="_blank" rel="noopener">my.nextdns.io</a>, en <b class="path">Denylist</b> pegá la lista <button type="button" class="btn copy-list">Copiar lista de páginas</button> y en <b>Setup › iOS</b> instalá el perfil desde <code>apple.nextdns.io</code>.</label></li>
     <li><input type="checkbox" id="i5"><label for="i5"><b>Ocultar íconos</b>: armá una pantalla de inicio solo con las apps permitidas. Después <b class="path">Ajustes › Concentración › + › Personalizado</b> ("Enfoque") › <b>Pantallas › Pantalla de inicio</b> y elegí solo esa página. Activalo desde el Centro de control.</label></li>
     <li><input type="checkbox" id="i6"><label for="i6">En Safari abrí esta página, <b>Compartir › Agregar a inicio</b> y poné el ícono "Enfoque" en esa pantalla.</label></li>
   </ol>
@@ -131,7 +137,13 @@
 
 <section>
   <h2>En la PC</h2>
-  <p>Programa para Windows con botón de encendido. Mientras está prendido, Chrome, Edge y Brave solo abren Gemini, WhatsApp Web, Drive, Meet y Zoom; Firefox, Opera, Steam, Discord y similares se cierran solos. Se apaga solo al llegar la fecha.</p>
+  <p>Programa para Windows con botón de encendido. Mientras está prendido:</p>
+  <ul>
+    <li>Chrome, Edge y Brave solo abren Gemini, WhatsApp Web, Drive, Meet y Zoom.</li>
+    <li>YouTube, redes, streaming, juegos, compras, noticias y buscadores quedan bloqueados en <b>todo el sistema</b> (cualquier navegador o app).</li>
+    <li>Firefox, Opera, Steam, Discord y similares se cierran solos.</li>
+  </ul>
+  <p>Se apaga solo al llegar la fecha.</p>
   <p><a class="btn primary" style="display:inline-block;text-decoration:none" href="pc/ModoEnfoque-PC.zip" download>Descargar para Windows</a></p>
   <p class="muted">Descomprimí y abrí <code>Modo Enfoque.bat</code> (acepta el permiso de administrador).</p>
 </section>
@@ -216,6 +228,18 @@
     if (q) { try { await navigator.clipboard.writeText(q); } catch {} }
     location.href = 'https://gemini.google.com/app';
   });
+
+  const BLOCKED = ['youtube.com', 'youtu.be', 'instagram.com', 'facebook.com', 'messenger.com', 'threads.net', 'tiktok.com', 'x.com', 'twitter.com',
+    'reddit.com', 'pinterest.com', 'tumblr.com', 'snapchat.com', '9gag.com', 'telegram.org', 'twitch.tv', 'kick.com', 'netflix.com',
+    'primevideo.com', 'disneyplus.com', 'max.com', 'crunchyroll.com', 'spotify.com', 'discord.com', 'steampowered.com', 'epicgames.com',
+    'roblox.com', 'chess.com', 'poki.com', 'mercadolibre.com.ar', 'amazon.com', 'temu.com', 'shein.com', 'aliexpress.com',
+    'infobae.com', 'clarin.com', 'lanacion.com.ar', 'ole.com.ar', 'tycsports.com', 'espn.com.ar', 'tn.com.ar', 'bing.com', 'duckduckgo.com'];
+  document.querySelectorAll('.copy-list').forEach((b) => b.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try { await navigator.clipboard.writeText(BLOCKED.join('
+')); b.textContent = '¡Copiada!'; }
+    catch { prompt('Copiá esta lista:', BLOCKED.join(' ')); }
+  }));
 
   // Pestañas y checklist
   const tabs = document.querySelectorAll('[data-tab]');

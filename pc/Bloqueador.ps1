@@ -2,6 +2,7 @@
 # Uso: doble clic en "Modo Enfoque.bat" (pide permisos de administrador).
 # Mientras esta encendido:
 #   - Chrome, Edge y Brave solo abren Gemini, WhatsApp Web, Drive/Docs, Meet y Zoom.
+#   - Las paginas de $BlockedSites quedan bloqueadas en TODO el sistema (archivo hosts).
 #   - Firefox, Opera, Steam, Discord, etc. se cierran solos apenas se abren.
 #   - Se apaga automaticamente al llegar la fecha limite (por defecto, el sabado).
 param([switch]$Watchdog)
@@ -32,6 +33,25 @@ $KillList = @(
     'Discord', 'Telegram', 'Spotify', 'Netflix', 'TikTok', 'Instagram', 'Messenger', 'Twitch'
 )
 
+# Sitios bloqueados en todo el sistema via hosts (se agregan tambien www. y m.)
+$BlockedSites = @(
+    'youtube.com', 'youtu.be', 'youtube-nocookie.com', 'music.youtube.com', 'studio.youtube.com',
+    'instagram.com', 'facebook.com', 'fb.com', 'fb.watch', 'web.facebook.com', 'mbasic.facebook.com', 'messenger.com', 'threads.net', 'threads.com',
+    'tiktok.com', 'x.com', 'twitter.com', 'mobile.twitter.com', 't.co',
+    'reddit.com', 'old.reddit.com', 'new.reddit.com', 'redd.it',
+    'pinterest.com', 'tumblr.com', 'snapchat.com', '9gag.com', 'telegram.org', 'web.telegram.org', 't.me',
+    'twitch.tv', 'kick.com', 'netflix.com', 'primevideo.com', 'disneyplus.com', 'max.com', 'hbomax.com', 'paramountplus.com', 'crunchyroll.com', 'pluto.tv',
+    'spotify.com', 'open.spotify.com', 'discord.com', 'discord.gg', 'discordapp.com',
+    'steampowered.com', 'store.steampowered.com', 'steamcommunity.com', 'epicgames.com', 'roblox.com', 'minecraft.net', 'riotgames.com', 'leagueoflegends.com',
+    'chess.com', 'lichess.org', 'poki.com', 'friv.com', 'miniclip.com', 'y8.com', 'crazygames.com',
+    'mercadolibre.com.ar', 'listado.mercadolibre.com.ar', 'articulo.mercadolibre.com.ar', 'amazon.com', 'temu.com', 'shein.com', 'aliexpress.com',
+    'infobae.com', 'clarin.com', 'lanacion.com.ar', 'ole.com.ar', 'tycsports.com', 'espn.com.ar', 'pagina12.com.ar', 'tn.com.ar',
+    'bing.com', 'duckduckgo.com', 'search.yahoo.com'
+)
+$HostsFile = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
+$HostsStart = '# >>> Modo Enfoque'
+$HostsEnd = '# <<< Modo Enfoque'
+
 $Browsers = @(
     @{ Key = 'HKLM:\SOFTWARE\Policies\Google\Chrome';        Private = 'IncognitoModeAvailability' },
     @{ Key = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge';       Private = 'InPrivateModeAvailability' },
@@ -39,7 +59,7 @@ $Browsers = @(
 )
 $StartUrl = 'https://gemini.google.com/app'
 $PolicyValues = @('RestoreOnStartup', 'HomepageLocation', 'NewTabPageLocation', 'HomepageIsNewTabPage', 'TorDisabled',
-                  'IncognitoModeAvailability', 'InPrivateModeAvailability', 'BrowserGuestModeEnabled')
+                  'IncognitoModeAvailability', 'InPrivateModeAvailability', 'BrowserGuestModeEnabled', 'DnsOverHttpsMode')
 $PolicyLists = @('URLBlocklist', 'URLAllowlist', 'RestoreOnStartupURLs')
 
 function Set-ListKey($path, [string[]]$items) {
@@ -69,6 +89,8 @@ function Set-Policies {
         New-ItemProperty $b.Key -Name 'NewTabPageLocation' -Value $StartUrl -PropertyType String -Force | Out-Null
         New-ItemProperty $b.Key -Name 'HomepageIsNewTabPage' -Value 0 -PropertyType DWord -Force | Out-Null
         New-ItemProperty $b.Key -Name 'BrowserGuestModeEnabled' -Value 0 -PropertyType DWord -Force | Out-Null
+        # Sin DNS seguro propio: asi el navegador respeta el archivo hosts
+        New-ItemProperty $b.Key -Name 'DnsOverHttpsMode' -Value 'off' -PropertyType String -Force | Out-Null
         New-ItemProperty $b.Key -Name $b.Private -Value 1 -PropertyType DWord -Force | Out-Null
         if ($b.Key -like '*Brave*') { New-ItemProperty $b.Key -Name 'TorDisabled' -Value 1 -PropertyType DWord -Force | Out-Null }
     }
@@ -82,6 +104,54 @@ function Remove-Policies {
         $k = Get-Item $b.Key
         if ($k -and $k.ValueCount -eq 0 -and $k.SubKeyCount -eq 0) { Remove-Item $b.Key -Force }
     }
+}
+
+# Devuelve el hosts sin nuestro bloque, o $null si no se pudo leer
+function Get-HostsLines {
+    $lines = $null
+    try { $lines = [IO.File]::ReadAllLines($HostsFile) } catch { return $null }
+    $inside = $false
+    $out = foreach ($line in $lines) {
+        if ($line -eq $HostsStart) { $inside = $true; continue }
+        if ($line -eq $HostsEnd) { $inside = $false; continue }
+        if (-not $inside) { $line }
+    }
+    return , @($out)
+}
+
+function Write-Hosts([string[]]$lines) {
+    try {
+        (Get-Item $HostsFile).IsReadOnly = $false
+        [IO.File]::WriteAllLines($HostsFile, $lines, [Text.Encoding]::ASCII)
+    } catch { return }
+    ipconfig /flushdns | Out-Null
+}
+
+function Test-HostsBlock {
+    return [bool](Select-String -Path $HostsFile -SimpleMatch $HostsStart -Quiet)
+}
+
+function Get-HostsTrimmed {
+    $lines = Get-HostsLines
+    if ($null -eq $lines) { return $null }
+    while ($lines.Count -and $lines[-1] -eq '') { $lines = @($lines | Select-Object -First ($lines.Count - 1)) }
+    return , $lines
+}
+
+function Set-HostsBlock {
+    $lines = Get-HostsTrimmed
+    if ($null -eq $lines) { return }
+    $block = foreach ($site in $BlockedSites) {
+        foreach ($prefix in '', 'www.', 'm.') { "0.0.0.0 $prefix$site" }
+    }
+    Write-Hosts ($lines + @('', $HostsStart) + $block + @($HostsEnd))
+}
+
+function Remove-HostsBlock {
+    if (-not (Test-HostsBlock)) { return }
+    $lines = Get-HostsTrimmed
+    if ($null -eq $lines) { return }
+    Write-Hosts $lines
 }
 
 function Restart-Browsers {
@@ -118,6 +188,7 @@ function New-Shortcut($path, $target, $arguments, $icon) {
 
 function Disable-Block([switch]$FromWatchdog) {
     Remove-Policies
+    Remove-HostsBlock
     Remove-Item $ConfigFile -Force
     Remove-Item $GeminiShortcut -Force
     Restart-Browsers
@@ -134,9 +205,9 @@ if ($Watchdog) {
             Disable-Block -FromWatchdog
             break
         }
-        if (($tick % 10) -eq 0 -and -not (Test-Policies)) {
-            Set-Policies
-            Restart-Browsers
+        if (($tick % 10) -eq 0) {
+            if (-not (Test-Policies)) { Set-Policies; Restart-Browsers }
+            if (-not (Test-HostsBlock)) { Set-HostsBlock }
         }
         Get-Process -Name $KillList | Stop-Process -Force
         $tick++
@@ -159,7 +230,9 @@ function Enable-Block([datetime]$deadline) {
     icacls $InstallDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
     @{ deadline = $deadline.ToString('s') } | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 
+    if (-not (Test-Path "$InstallDir\hosts.backup")) { Copy-Item $HostsFile "$InstallDir\hosts.backup" }
     Set-Policies
+    Set-HostsBlock
     Restart-Browsers
 
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
@@ -247,7 +320,7 @@ $picker.Value = Get-NextSaturday
 $form.Controls.Add($picker)
 
 $info = New-Object System.Windows.Forms.Label
-$info.Text = "Permitido: Gemini, WhatsApp, Drive, Meet y Zoom.`nEl resto de la web y los juegos quedan bloqueados."
+$info.Text = "Permitido: Gemini, WhatsApp, Drive, Meet y Zoom.`nYouTube, redes, streaming, juegos y noticias: bloqueados en todo el sistema."
 $info.ForeColor = $muted
 $info.Font = New-Object System.Drawing.Font('Segoe UI', 9)
 $info.AutoSize = $false; $info.TextAlign = 'MiddleCenter'
