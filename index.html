@@ -236,8 +236,7 @@
     'infobae.com', 'clarin.com', 'lanacion.com.ar', 'ole.com.ar', 'tycsports.com', 'espn.com.ar', 'tn.com.ar', 'bing.com', 'duckduckgo.com'];
   document.querySelectorAll('.copy-list').forEach((b) => b.addEventListener('click', async (e) => {
     e.preventDefault();
-    try { await navigator.clipboard.writeText(BLOCKED.join('
-')); b.textContent = '¡Copiada!'; }
+    try { await navigator.clipboard.writeText(BLOCKED.join(String.fromCharCode(10))); b.textContent = '¡Copiada!'; }
     catch { prompt('Copiá esta lista:', BLOCKED.join(' ')); }
   }));
 
