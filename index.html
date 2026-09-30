@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modo Enfoque</title>
+<meta name="description" content="Bloqueador de distracciones hasta el sábado.">
+<meta name="theme-color" content="#111418">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Enfoque">
+<style>
+  :root {
+    --bg: #111418; --card: #1a1e24; --line: #2a2f37; --fg: #eceef0; --muted: #969ca4;
+    --on: #2ecc71; --off: #e74c3c; --accent: #6ea8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; margin: 8px 0 0; text-align: center; letter-spacing: -.01em; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  p { margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  .center { text-align: center; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-top: 16px; }
+
+  #status { font-weight: 600; letter-spacing: .08em; margin-top: 2px; }
+  .power {
+    display: block; margin: 18px auto 10px; width: 150px; height: 150px; border-radius: 50%;
+    border: 0; cursor: pointer; color: #fff; font: 600 1.05rem system-ui, sans-serif;
+    background: var(--on); box-shadow: 0 0 0 10px rgba(46, 204, 113, .12);
+    transition: transform .15s, background .2s, box-shadow .2s;
+  }
+  .power:active { transform: scale(.96); }
+  .power svg { width: 46px; height: 46px; display: block; margin: 0 auto 6px; }
+  body.active .power { background: var(--off); box-shadow: 0 0 0 10px rgba(231, 76, 60, .12); }
+  #countdown { font: 600 2rem ui-monospace, "SF Mono", Consolas, monospace; text-align: center; font-variant-numeric: tabular-nums; }
+  .deadline { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+  input, button.btn {
+    font: inherit; color: var(--fg); background: #0d1014; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  button.btn { cursor: pointer; background: #232830; }
+  button.btn.primary { background: var(--accent); color: #0b1220; border-color: transparent; font-weight: 600; }
+
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 8px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none; color: var(--fg); font-size: .8rem; text-align: center; }
+  .app span.i {
+    width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+    font-size: 1.6rem; color: #fff; font-weight: 700;
+  }
+  .ask { display: flex; gap: 8px; margin-top: 16px; }
+  .ask input { flex: 1; min-width: 0; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tabs button { flex: 1; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: #0b1220; border-color: transparent; font-weight: 600; }
+  ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; }
+  ol.steps li { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  ol.steps li:first-child { border-top: 0; }
+  ol.steps input[type=checkbox] { width: 22px; height: 22px; flex: none; margin-top: 2px; accent-color: var(--on); }
+  ol.steps label { cursor: pointer; }
+  ol.steps li.done label { color: var(--muted); text-decoration: line-through; }
+  b.path { color: var(--accent); font-weight: 600; }
+  .note { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin-top: 12px; }
+  .hide { display: none !important; }
+  a { color: var(--accent); }
+  code { background: #0d1014; padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Modo Enfoque</h1>
+<p id="status" class="center muted">APAGADO</p>
+
+<button class="power" id="power" aria-label="Encender o apagar">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></svg>
+  <span id="powerLabel">ENCENDER</span>
+</button>
+
+<div id="countdown" class="hide"></div>
+<div class="deadline" id="deadlineBox">
+  <label for="deadline" class="muted">Hasta:</label>
+  <input type="datetime-local" id="deadline">
+</div>
+
+<section id="launcher" class="hide">
+  <h2>Lo único que necesitás</h2>
+  <div class="apps" id="apps"></div>
+  <form class="ask" id="ask">
+    <input id="q" placeholder="¿Qué querés buscar?" autocomplete="off" aria-label="Pregunta para Gemini">
+    <button class="btn primary">Gemini</button>
+  </form>
+  <p class="note">Tu pregunta se copia y se abre Gemini: pegala y listo.</p>
+</section>
+
+<section>
+  <h2>Bloqueo real en el celular</h2>
+  <p class="muted">Una página web no tiene permiso para bloquear apps, así que el bloqueo lo hace el propio teléfono. Seguí estos pasos una vez (5 minutos) y tildalos.</p>
+  <div class="tabs" role="tablist">
+    <button class="btn" role="tab" data-tab="android">Android</button>
+    <button class="btn" role="tab" data-tab="iphone">iPhone</button>
+  </div>
+
+  <ol class="steps" data-tab-panel="android">
+    <li><input type="checkbox" id="a1"><label for="a1"><b class="path">Ajustes › Bienestar digital › Modo concentración</b> (en Samsung: <b class="path">Ajustes › Bienestar digital y control parental › Modo concentración</b>).</label></li>
+    <li><input type="checkbox" id="a2"><label for="a2">Marcá como "apps que distraen" <b>todas</b> menos Teléfono, Mensajes, WhatsApp, Drive, Meet, Zoom y Gemini. Incluí Chrome, Samsung Internet, YouTube, Instagram, TikTok y los juegos.</label></li>
+    <li><input type="checkbox" id="a3"><label for="a3">Tocá <b>Activar ahora</b>. Si querés que se sostenga solo, en <b>Establecer un programa</b> poné todos los días de 00:00 a 23:59 y desactivalo el sábado.</label></li>
+    <li><input type="checkbox" id="a4"><label for="a4"><b>Ocultar íconos</b> — Samsung: <b class="path">Ajustes › Pantalla de inicio › Ocultar apps en pantallas Inicio y Aplicaciones</b> y ocultá todo lo que no sea permitido. Otros Android: mové todas las apps a una carpeta "Después" en la última pantalla.</label></li>
+    <li><input type="checkbox" id="a5"><label for="a5">En Chrome abrí esta página, menú <b>⋮ › Agregar a pantalla principal</b> y dejá el ícono "Enfoque" en la primera pantalla: es tu lanzador.</label></li>
+    <li><input type="checkbox" id="a6"><label for="a6">Extra: en <b>Bienestar digital › Panel</b> poné un temporizador de 1 minuto a Chrome, así no se usa como puerta trasera.</label></li>
+  </ol>
+
+  <ol class="steps hide" data-tab-panel="iphone">
+    <li><input type="checkbox" id="i1"><label for="i1"><b class="path">Ajustes › Tiempo en pantalla › Usar código</b>: pedile a otra persona que ponga el código, así no lo podés saltear.</label></li>
+    <li><input type="checkbox" id="i2"><label for="i2"><b class="path">Tiempo de inactividad</b> → Programado, todos los días de 00:00 a 23:59, con <b>Bloquear en tiempo de inactividad</b> activado.</label></li>
+    <li><input type="checkbox" id="i3"><label for="i3"><b class="path">Siempre permitido</b>: dejá solo Teléfono, Mensajes, WhatsApp, Drive, Meet, Zoom y Gemini.</label></li>
+    <li><input type="checkbox" id="i4"><label for="i4"><b class="path">Restricciones › Restricciones de contenido › Contenido web › Solo sitios web permitidos</b> y agregá <code>gemini.google.com</code>, <code>drive.google.com</code>, <code>meet.google.com</code>, <code>zoom.us</code> y esta página.</label></li>
+    <li><input type="checkbox" id="i5"><label for="i5"><b>Ocultar íconos</b>: armá una pantalla de inicio solo con las apps permitidas. Después <b class="path">Ajustes › Concentración › + › Personalizado</b> ("Enfoque") › <b>Pantallas › Pantalla de inicio</b> y elegí solo esa página. Activalo desde el Centro de control.</label></li>
+    <li><input type="checkbox" id="i6"><label for="i6">En Safari abrí esta página, <b>Compartir › Agregar a inicio</b> y poné el ícono "Enfoque" en esa pantalla.</label></li>
+  </ol>
+  <p class="note">El sábado: desactivá el Modo concentración / Tiempo de inactividad y volvé a mostrar las apps.</p>
+</section>
+
+<section>
+  <h2>En la PC</h2>
+  <p>Programa para Windows con botón de encendido. Mientras está prendido, Chrome, Edge y Brave solo abren Gemini, WhatsApp Web, Drive, Meet y Zoom; Firefox, Opera, Steam, Discord y similares se cierran solos. Se apaga solo al llegar la fecha.</p>
+  <p><a class="btn primary" style="display:inline-block;text-decoration:none" href="pc/ModoEnfoque-PC.zip" download>Descargar para Windows</a></p>
+  <p class="muted">Descomprimí y abrí <code>Modo Enfoque.bat</code> (acepta el permiso de administrador).</p>
+</section>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const UNLOCK = 'QUIERO DISTRAERME';
+
+  const ua = navigator.userAgent;
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const intent = (scheme, pkg, fallback, path = '') =>
+    `intent://${path}#Intent;scheme=${scheme};package=${pkg};S.browser_fallback_url=${encodeURIComponent(fallback)};end`;
+
+  const APPS = [
+    { name: 'Teléfono', icon: '☎', color: '#34a853', href: 'tel:' },
+    { name: 'Mensajes', icon: '✉', color: '#1a73e8', href: 'sms:' },
+    { name: 'WhatsApp', icon: 'W', color: '#25d366',
+      href: isAndroid ? intent('whatsapp', 'com.whatsapp', 'https://web.whatsapp.com', 'send') : isIOS ? 'whatsapp://' : 'https://web.whatsapp.com' },
+    { name: 'Drive', icon: '▲', color: '#f4b400',
+      href: isIOS ? 'googledrive://' : 'https://drive.google.com/drive/my-drive' },
+    { name: 'Meet', icon: 'M', color: '#00897b', href: 'https://meet.google.com/' },
+    { name: 'Zoom', icon: 'Z', color: '#2d8cff',
+      href: isAndroid ? intent('zoomus', 'us.zoom.videomeetings', 'https://zoom.us/join') : isIOS ? 'zoomus://' : 'https://zoom.us/join' },
+    { name: 'Gemini', icon: '✦', color: '#7b61ff', href: 'https://gemini.google.com/app' },
+    { name: 'Calendario', icon: '31', color: '#4285f4', href: isIOS ? 'calshow://' : 'https://calendar.google.com/' },
+  ];
+  $('#apps').innerHTML = APPS.map((a) =>
+    `<a class="app" href="${a.href}" rel="noopener"><span class="i" style="background:${a.color}">${a.icon}</span>${a.name}</a>`).join('');
+
+  // Fecha límite: por defecto, el próximo sábado a las 00:00
+  const nextSaturday = () => {
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    do { d.setDate(d.getDate() + 1); } while (d.getDay() !== 6);
+    return d;
+  };
+  const toLocalInput = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('#deadline').value = toLocalInput(nextSaturday());
+
+  let state = store.get('focus', { on: false, until: null });
+
+  function render() {
+    if (state.on && Date.now() >= state.until) { state = { on: false, until: null }; store.set('focus', state); }
+    document.body.classList.toggle('active', state.on);
+    $('#status').textContent = state.on
+      ? 'ENCENDIDO · hasta el ' + new Date(state.until).toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'APAGADO';
+    $('#status').style.color = state.on ? 'var(--on)' : '';
+    $('#powerLabel').textContent = state.on ? 'APAGAR' : 'ENCENDER';
+    $('#launcher').classList.toggle('hide', !state.on);
+    $('#countdown').classList.toggle('hide', !state.on);
+    $('#deadlineBox').classList.toggle('hide', state.on);
+    if (state.on) {
+      const s = Math.max(0, Math.floor((state.until - Date.now()) / 1000));
+      const p = (n) => String(n).padStart(2, '0');
+      $('#countdown').textContent = `${Math.floor(s / 86400)}d ${p(Math.floor(s / 3600) % 24)}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+    }
+  }
+
+  $('#power').addEventListener('click', () => {
+    if (state.on) {
+      const answer = prompt(`Todavía no es la fecha. Si de verdad querés apagarlo, escribí:\n\n${UNLOCK}`);
+      if (answer !== UNLOCK) return;
+      state = { on: false, until: null };
+    } else {
+      const until = new Date($('#deadline').value).getTime();
+      if (!until || until <= Date.now()) { alert('Elegí una fecha en el futuro.'); return; }
+      state = { on: true, until };
+    }
+    store.set('focus', state);
+    render();
+  });
+
+  $('#ask').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = $('#q').value.trim();
+    if (q) { try { await navigator.clipboard.writeText(q); } catch {} }
+    location.href = 'https://gemini.google.com/app';
+  });
+
+  // Pestañas y checklist
+  const tabs = document.querySelectorAll('[data-tab]');
+  const showTab = (name) => {
+    tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+    document.querySelectorAll('[data-tab-panel]').forEach((p) => p.classList.toggle('hide', p.dataset.tabPanel !== name));
+    store.set('tab', name);
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  showTab(store.get('tab', isIOS ? 'iphone' : 'android'));
+
+  const checks = store.get('checks', {});
+  document.querySelectorAll('ol.steps input[type=checkbox]').forEach((c) => {
+    c.checked = !!checks[c.id];
+    c.closest('li').classList.toggle('done', c.checked);
+    c.addEventListener('change', () => {
+      checks[c.id] = c.checked; store.set('checks', checks);
+      c.closest('li').classList.toggle('done', c.checked);
+    });
+  });
+
+  render();
+  setInterval(render, 1000);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
